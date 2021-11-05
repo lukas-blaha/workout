@@ -12,8 +12,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var workouts = []string{"pullups", "pushups", "dips", "squats"}
-
 const (
 	host     = "localhost"
 	port     = 5432
@@ -22,23 +20,22 @@ const (
 	dbname   = "workout"
 )
 
+type entry struct {
+	id    int
+	date  string
+	name  string
+	count int
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func findEx(ex string) bool {
-	for _, i := range workouts {
-		if ex == i {
-			return true
-		}
-	}
-	return false
-}
-
 func queryDb(conn net.Conn, db *sql.DB, ent *entry, prnt bool, date string, exercise string) {
 	var condition string
+	var entries []entry
 	if exercise == "all" {
 		condition = fmt.Sprintf(" where date = '%s'", date)
 	} else {
@@ -54,17 +51,18 @@ func queryDb(conn net.Conn, db *sql.DB, ent *entry, prnt bool, date string, exer
 		err = rows.Scan(&ent.id, &ent.date, &ent.name, &ent.count)
 		checkError(err)
 
-		if prnt {
-			fmt.Fprintf(conn, "%s: %d\n", ent.name, ent.count)
-		}
+		entries = append(entries, *ent)
 	}
-}
 
-type entry struct {
-	id    int
-	date  string
-	name  string
-	count int
+	if prnt {
+		for _, i := range entries {
+			fmt.Fprintf(conn, "%s: %d\n", i.name, i.count)
+		}
+		if len(entries) == 0 {
+			fmt.Fprintln(conn, "There's nothing to show")
+		}
+		fmt.Fprintln(conn, "<end>")
+	}
 }
 
 func manageRequest(conn net.Conn, args []string) {
@@ -75,57 +73,32 @@ func manageRequest(conn net.Conn, args []string) {
 	checkError(err)
 	defer db.Close()
 
-	if len(args) >= 2 {
-		opt := strings.ToLower(args[0])
-		opt = strings.ReplaceAll(opt, "-", "")
+	cmd := args[0]
+	opt := args[1]
+	date := args[2]
 
-		if opt == "list" {
-			if len(args) >= 2 {
-				exercise := strings.ToLower(args[1])
-				exercise = strings.ReplaceAll(exercise, "-", "")
-
-				if findEx(exercise) || exercise == "all" {
-					date := "today"
-					if len(args) > 2 {
-						date = args[2]
-					}
-					var ent entry
-					queryDb(conn, db, &ent, true, date, exercise)
-				}
-			}
-		} else if findEx(opt) {
-			if len(args) >= 2 {
-				count := args[1]
-				if string(count[0]) == "-" || string(count[0]) == "+" {
-					var ex entry
-					queryDb(conn, db, &ex, false, "today", opt)
-					if ex.id == 0 {
-						inp := `insert into "exercises"("date", "name", "count") values($1, $2, $3)`
-						_, err := db.Exec(inp, "today", opt, count)
-						checkError(err)
-					} else {
-						n, err := strconv.Atoi(count[1:])
-						checkError(err)
-						inp := `update "exercises" set "count" = $1 where "id" = $2`
-						if string(count[0]) == "+" {
-							_, err := db.Exec(inp, (ex.count + n), ex.id)
-							checkError(err)
-						} else {
-							_, err := db.Exec(inp, (ex.count - n), ex.id)
-							checkError(err)
-						}
-					}
-
-				} else {
-					fmt.Fprintf(conn, "You have to use +/- new value\n%s\n",
-						"Ex.: myworkout pushups +20")
-				}
-			}
-		} else {
-			fmt.Fprintln(conn, "incorrect option")
-		}
+	if cmd == "list" {
+		var ent entry
+		queryDb(conn, db, &ent, true, date, opt)
 	} else {
-		fmt.Fprintln(conn, "You have to specify at least one option")
+		var ex entry
+		n, err := strconv.Atoi(opt[1:])
+		checkError(err)
+		queryDb(conn, db, &ex, false, "today", opt)
+		if ex.id == 0 {
+			inp := `insert into "exercises"("date", "name", "count") values($1, $2, $3)`
+			_, err := db.Exec(inp, "today", cmd, n)
+			checkError(err)
+		} else {
+			inp := `update "exercises" set "count" = $1 where "id" = $2`
+			if string(opt[0]) == "+" {
+				_, err := db.Exec(inp, (ex.count + n), ex.id)
+				checkError(err)
+			} else {
+				_, err := db.Exec(inp, (ex.count - n), ex.id)
+				checkError(err)
+			}
+		}
 	}
 }
 
@@ -144,9 +117,8 @@ func main() {
 
 func handle(conn net.Conn) {
 	defer conn.Close()
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		manageRequest(conn, strings.Split(scanner.Text(), " "))
-		break
-	}
+	msg, err := bufio.NewReader(conn).ReadString('\n')
+	checkError(err)
+	msg = strings.ReplaceAll(msg, "\n", "")
+	manageRequest(conn, strings.Split(msg, " "))
 }
