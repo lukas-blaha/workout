@@ -11,6 +11,7 @@ import (
 	_ "github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/lukas-blaha/workout/data"
 )
 
 const webPort = "8082"
@@ -25,8 +26,8 @@ type Config struct {
 func main() {
 	// connect to DB
 	conn := connectToDB()
-	if conn != nil {
-		log.Panic("Can't connect to Postgres!")
+	if conn == nil {
+		log.Fatal("Can't connect to Postgres!")
 	}
 
 	app := Config{
@@ -45,7 +46,7 @@ func main() {
 	// start the server
 	err := srv.ListenAndServe()
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 }
 

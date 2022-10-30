@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  workout:
+    build:
+      context: /Users/lukas/go/src/github.com/lukas-blaha/workout
+      dockerfile: /Users/lukas/go/src/github.com/lukas-blaha/workout/Dockerfile
+    restart: always
+    ports:
+    - "8082:8082"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=postgres dbname=exercises sslmode=disable timezone=UTC connect_timeout=5"
+
+  postgres:
+    image: postgres:14.2
+    ports:
+    - "5432:5432"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: exercises
+    volumes:
+    - ./db-data/postgres:/var/lib/postgresql/data/

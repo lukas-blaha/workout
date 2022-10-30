@@ -9,13 +9,20 @@ import (
 	"time"
 )
 
-type jsonResponse struct {
+type Exercise struct {
 	ID      int    `json:"id,omitepmpty"`
 	Name    string `json:"name,omitempty"`
 	Count   int    `json:"count,omitempty"`
 	Date    string `json:"date,omitempty"`
 	Error   bool   `json:"error,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+var Exercises = []Exercise{
+	{Name: "pushups", Count: 0, Date: "30-10-2022"},
+	{Name: "pullups", Count: 0, Date: "30-10-2022"},
+	{Name: "dips", Count: 0, Date: "30-10-2022"},
+	{Name: "squats", Count: 0, Date: "30-10-2022"},
 }
 
 func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) error {
@@ -69,7 +76,7 @@ func (app *Config) errorJSON(w http.ResponseWriter, err error, status ...int) er
 		statusCode = status[0]
 	}
 
-	var payload jsonResponse
+	var payload Exercise
 	payload.Error = true
 	payload.Message = err.Error()
 
