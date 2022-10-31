@@ -189,11 +189,7 @@ func (e *Exercise) Update(name, date string, count int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	stmt := `update exercises set
-		count = $1,
-		where name = $2 and
-		date = $3
-	`
+	stmt := `update exercises set count = $1 where name = $2 and date = $3`
 
 	_, err := db.ExecContext(ctx, stmt,
 		count,

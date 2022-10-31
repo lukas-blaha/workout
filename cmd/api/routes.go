@@ -24,7 +24,12 @@ func (app *Config) routes() http.Handler {
 	mux.Use(middleware.Heartbeat("/ping"))
 
 	mux.Get("/exercises", app.GetExercises)
+	mux.Get("/exercises/{date}/{name}", app.GetByNameDate)
+	mux.Get("/exercises/name/{name}", app.GetByName)
+	mux.Get("/exercises/date/{date}", app.GetByDate)
 	mux.Post("/exercises", app.AddNewExercise)
+	mux.Patch("/exercises/{date}/{name}/{count}", app.UpdateExercise)
+	mux.Delete("/exercises/{date}/{name}", app.DeleteExercise)
 
 	return mux
 }
