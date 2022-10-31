@@ -18,13 +18,6 @@ type Exercise struct {
 	Message string `json:"message,omitempty"`
 }
 
-var Exercises = []Exercise{
-	{Name: "pushups", Count: 0, Date: "30-10-2022"},
-	{Name: "pullups", Count: 0, Date: "30-10-2022"},
-	{Name: "dips", Count: 0, Date: "30-10-2022"},
-	{Name: "squats", Count: 0, Date: "30-10-2022"},
-}
-
 func (app *Config) readJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	maxBytes := 1048576 // one megabyte
 
